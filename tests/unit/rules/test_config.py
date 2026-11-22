@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from fafsa_edit_rule_processor.rules.models import RuleConfig, RuleSet
+from fafsa_edit_rule_processor.rules.config import RuleConfig, RuleSet
 
 
 def _rule(rule_id: str = "R1", **overrides: Any) -> dict[str, Any]:

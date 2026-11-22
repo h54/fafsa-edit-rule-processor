@@ -7,8 +7,6 @@ from fafsa_edit_rule_processor.rules.repository import (
     YamlRuleConfigRepository,
 )
 
-SHIPPED_RULES = Path(__file__).parents[2] / "config" / "rules.yaml"
-
 REQUIRED_RULE_IDS = {
     "STUDENT_MIN_AGE",
     "SSN_FORMAT",
@@ -20,8 +18,8 @@ REQUIRED_RULE_IDS = {
 }
 
 
-def test_shipped_rules_file_is_valid_and_complete() -> None:
-    ruleset = YamlRuleConfigRepository(SHIPPED_RULES).load()
+def test_shipped_rules_file_is_valid_and_complete(shipped_rules_path: Path) -> None:
+    ruleset = YamlRuleConfigRepository(shipped_rules_path).load()
 
     assert ruleset.version
     assert {r.rule_id for r in ruleset.rules} == REQUIRED_RULE_IDS

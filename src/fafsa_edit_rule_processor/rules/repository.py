@@ -4,7 +4,7 @@ from typing import Protocol
 import yaml
 from pydantic import ValidationError
 
-from fafsa_edit_rule_processor.rules.models import RuleSet
+from fafsa_edit_rule_processor.rules.config import RuleSet
 
 
 class RuleConfigError(Exception):
