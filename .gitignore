@@ -4,3 +4,4 @@
 .vscode
 coverage.xml
 htmlcov
+__pycache__/
