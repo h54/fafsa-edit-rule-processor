@@ -7,6 +7,11 @@ The `fafsa-edit-rule-processor` is a REST service that accepts [FAFSA](https://s
 
 ## Configuration
 
+### Dependencies
+
+- python >= 3.14
+- make
+
 ## Testing
 
 ## Running

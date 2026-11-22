@@ -1,0 +1,32 @@
+[project]
+name = "fafsa-edit-rule-processor"
+version = "0.1.0"
+description = "REST service that applies FAFSA edit rules to application data"
+readme = "README.md"
+authors = [
+    { name = "Chris Declama", email = "chris.declama@protonmail.com" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi>=0.165.0",
+    "pyyaml>=6.0.4",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.7,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.16.2",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.5.0",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.6",
+    "ty>=0.0.107",
+    "types-pyyaml>=6.0.12.20261122",
+]
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"

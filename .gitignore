@@ -1,3 +1,6 @@
 
+.coverage
 .idea
 .vscode
+coverage.xml
+htmlcov
