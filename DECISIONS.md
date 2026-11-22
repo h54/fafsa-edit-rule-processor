@@ -1,6 +1,8 @@
 
 # Decisions
 
+Philosophy: make it work, make it right
+
 ## Technology
 
 - Python + FastAPI - if I had more time, I would've used Java
