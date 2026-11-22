@@ -36,3 +36,7 @@
 - each request is evaluated against one immutable ruleset snapshot, so a config reload during a request can't mix two rule versions
 - the response includes the ruleset version, so every result can be traced to the exact rules that produced it
 - future: effective dates / award year on rules
+
+## Production Considerations
+
+- logging is plain stdlib text; in production: JSON logs + request IDs for log aggregation and audit traceability
