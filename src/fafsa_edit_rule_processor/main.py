@@ -23,7 +23,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
 
     @app.get("/", include_in_schema=False)
-    def redirect_to_docs():
+    def redirect_to_docs() -> RedirectResponse:
         return RedirectResponse(url="/docs")
 
     # routes

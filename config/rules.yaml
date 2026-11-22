@@ -1,0 +1,47 @@
+# FAFSA edit rule configuration.
+#
+# Each rule_id must match a rule implemented in code. Severity, message, params,
+# and enabled can be changed here without a code change. Bump `version` on every
+# change; it is returned with each validation result for traceability.
+#
+# Messages may reference params, e.g. {min_age}.
+
+version: "2026-27.1"
+
+rules:
+  - rule_id: STUDENT_MIN_AGE
+    severity: ERROR
+    message: "Student must be at least {min_age} years old."
+    params:
+      min_age: 14
+
+  - rule_id: SSN_FORMAT
+    severity: ERROR
+    message: "SSN must be exactly 9 digits, with no dashes or spaces."
+
+  - rule_id: DEPENDENT_PARENT_INCOME
+    severity: ERROR
+    message: "Parent income is required for dependent students."
+
+  - rule_id: NON_NEGATIVE_INCOME
+    severity: ERROR
+    message: "Income cannot be negative."
+
+  - rule_id: COLLEGE_WITHIN_HOUSEHOLD
+    severity: ERROR
+    message: "Number in college cannot exceed number in household."
+
+  - rule_id: STATE_CODE
+    severity: ERROR
+    message: "State of residence must be a valid US state abbreviation."
+    params:
+      # 50 states + DC. Territories (e.g. PR, GU) can be added here without a deploy.
+      valid_codes: [
+        AL, AK, AZ, AR, CA, CO, CT, DE, DC, FL, GA, HI, ID, IL, IN, IA, KS,
+        KY, LA, ME, MD, MA, MI, MN, MS, MO, MT, NE, NV, NH, NJ, NM, NY, NC,
+        ND, OH, OK, OR, PA, RI, SC, SD, TN, TX, UT, VT, VA, WA, WV, WI, WY,
+      ]
+
+  - rule_id: MARRIED_SPOUSE_INFO
+    severity: ERROR
+    message: "Spouse name and SSN are required when marital status is married."

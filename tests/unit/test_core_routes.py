@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from fafsa_edit_rule_processor.main import create_app
 
 
-def test_healthz_returns_ok():
+def test_healthz_returns_ok() -> None:
     client = TestClient(create_app())
 
     response = client.get("/healthz")
