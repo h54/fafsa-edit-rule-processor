@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
 
-class _Schema(BaseModel):
+class FafsaServiceSchema(BaseModel):
     model_config = ConfigDict(
         alias_generator=to_camel,
         populate_by_name=True,
@@ -32,30 +32,30 @@ class MaritalStatus(StrEnum):
     MARRIED = "married"
 
 
-class StudentInfo(_Schema):
+class StudentInfo(FafsaServiceSchema):
     first_name: str
     last_name: str
     ssn: str | None = None
     date_of_birth: date | None = None
 
 
-class SpouseInfo(_Schema):
+class SpouseInfo(FafsaServiceSchema):
     first_name: str | None = None
     last_name: str | None = None
     ssn: str | None = None
 
 
-class Household(_Schema):
+class Household(FafsaServiceSchema):
     number_in_household: int
     number_in_college: int
 
 
-class Income(_Schema):
+class Income(FafsaServiceSchema):
     student_income: Decimal
     parent_income: Decimal | None = None
 
 
-class FafsaApplication(_Schema):
+class FafsaApplication(FafsaServiceSchema):
     student_info: StudentInfo
     dependency_status: DependencyStatus
     marital_status: MaritalStatus
