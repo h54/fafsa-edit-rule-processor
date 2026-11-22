@@ -1,0 +1,18 @@
+{
+  "studentInfo": {
+    "firstName": "Daryl",
+    "lastName": "Strawberry",
+    "ssn": "invalid",
+    "dateOfBirth": "2021-08-12"
+  },
+  "dependencyStatus": "dependent",
+  "maritalStatus": "married",
+  "household": {
+    "numberInHousehold": 2,
+    "numberInCollege": 5
+  },
+  "income": {
+    "studentIncome": -1000
+  },
+  "stateOfResidence": "AC"
+}
