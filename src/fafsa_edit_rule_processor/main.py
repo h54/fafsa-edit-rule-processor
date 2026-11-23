@@ -4,7 +4,12 @@ from fastapi import FastAPI
 from starlette.responses import RedirectResponse
 
 from fafsa_edit_rule_processor.config import Settings
-from fafsa_edit_rule_processor.routes import core
+from fafsa_edit_rule_processor.routes import applications, core
+from fafsa_edit_rule_processor.rules import fafsa
+from fafsa_edit_rule_processor.rules.engine import RuleEngine
+from fafsa_edit_rule_processor.rules.repository import YamlRuleConfigRepository
+
+logger = logging.getLogger(__name__)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -14,6 +19,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
 
+    # Fail fast: an invalid rules file stops startup rather than serving bad results.
+    ruleset = YamlRuleConfigRepository(settings.rules_path).load()
+    engine = RuleEngine(ruleset, fafsa.registry)
+    logger.info(
+        "loaded ruleset %s (%d of %d rules enabled)",
+        ruleset.version,
+        len(ruleset.enabled_rules),
+        len(ruleset.rules),
+    )
+
     app = FastAPI(
         title="FAFSA Edit Rule Processor",
         description="Applies validations to applicant FAFSA data",
@@ -21,6 +36,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         version="1.0",
     )
     app.state.settings = settings
+    app.state.engine = engine
 
     @app.get("/", include_in_schema=False)
     def redirect_to_docs() -> RedirectResponse:
@@ -28,5 +44,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     # routes
     app.include_router(core.router)
+    app.include_router(applications.router)
 
     return app
