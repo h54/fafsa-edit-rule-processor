@@ -2,10 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from fafsa_edit_rule_processor.rules.repository import (
-    RuleConfigError,
-    YamlRuleConfigRepository,
-)
+from fafsa_edit_rule_processor.rules.config import RuleConfigError
+from fafsa_edit_rule_processor.rules.repository import YamlRuleConfigRepository
 
 REQUIRED_RULE_IDS = {
     "STUDENT_MIN_AGE",

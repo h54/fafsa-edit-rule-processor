@@ -4,11 +4,7 @@ from typing import Protocol
 import yaml
 from pydantic import ValidationError
 
-from fafsa_edit_rule_processor.rules.config import RuleSet
-
-
-class RuleConfigError(Exception):
-    """Rule configuration could not be loaded or is invalid."""
+from fafsa_edit_rule_processor.rules.config import RuleConfigError, RuleSet
 
 
 class RuleConfigRepository(Protocol):
@@ -16,7 +12,7 @@ class RuleConfigRepository(Protocol):
 
     The file-backed implementation below keeps the service dependency-free; in
     production a database-backed implementation would provide change history and
-    admin edits without a deploy.
+    admin edits without a deployment.
     """
 
     def load(self) -> RuleSet: ...
