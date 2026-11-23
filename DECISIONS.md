@@ -15,7 +15,10 @@ Philosophy: make it work, make it right
   - **schema validation** (Pydantic): structure and types only. Malformed requests are rejected with `422`.
   - **edit rules**: business logic. They run on any structurally valid application, even one with bad values, and return `200` with results.
 - schema is deliberately lenient: fields that rules check (e.g. `parentIncome`, spouse info) are optional, and values like SSN are plain strings, so the edit rules report these problems instead of a schema rejection
-- each rule outcome is `PASSED`, `FAILED`, or `SKIPPED` (rule not applicable, e.g. spouse rule for a single applicant). Skipped is not reported as passed.
+- each rule outcome is `PASSED`, `FAILED`, `SKIPPED` (rule not applicable, e.g. spouse rule for a single applicant), or `ERRORED`. Skipped is not reported as passed.
+- overall status, by precedence: `INVALID` (an `ERROR` rule failed) > `INCOMPLETE` (a rule errored) > `VALID_WITH_WARNINGS` (a `WARNING` rule failed) > `VALID`. `INFO` failures don't affect status.
+- a rule that raises is caught and logged, and reported as `ERRORED`; the other rules still run. One buggy rule degrades a result to `INCOMPLETE`, never to a 500 for every application, and never to a false `VALID`.
+- a disabled rule with no implementation is allowed (so config can be staged before code ships) but logs a warning at startup
 
 ## Rule Representation
 
@@ -32,6 +35,7 @@ Philosophy: make it work, make it right
 - implemented here: a file-backed repository (YAML), so the service runs with no external dependencies
 - in production: a Postgres-backed implementation of the same interface, which gives auditing, change history, and edits through an admin tool without a deploy. Not built here to keep the service easy to run within the time limit.
 - rules are loaded into memory at startup, never read from the store per request
+- config changes (enable/disable, severity, message, params) currently take effect on restart. Future: hot reload via an admin endpoint or periodic re-read that builds a new, validated `RuleEngine` and atomically swaps it in. An invalid config is rejected and the current engine keeps serving.
 
 ## Consistency
 

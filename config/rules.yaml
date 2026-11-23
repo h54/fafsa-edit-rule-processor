@@ -43,5 +43,6 @@ rules:
       ]
 
   - rule_id: MARRIED_SPOUSE_INFO
+    enabled: true
     severity: ERROR
     message: "Spouse name and SSN are required when marital status is married."

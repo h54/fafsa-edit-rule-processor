@@ -5,6 +5,10 @@ from typing import Any, Self
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
+class RuleConfigError(Exception):
+    """Rule configuration could not be loaded or is invalid."""
+
+
 class Severity(StrEnum):
     ERROR = "ERROR"  # application cannot be processed until fixed
     WARNING = "WARNING"  # application can proceed but should be reviewed
