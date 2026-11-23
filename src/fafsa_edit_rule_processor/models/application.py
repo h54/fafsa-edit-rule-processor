@@ -1,16 +1,20 @@
 """FAFSA application request schema.
 
-Validates structure and types only. Fields checked by an edit rule are optional
-and loosely typed (e.g. SSN is any string) so the rule, not the schema, reports
-the problem with an actionable message.
+Validates structure, types, and the presence of fields every application must
+have. Values are loosely typed (e.g. SSN is any string) and conditionally
+required fields are optional, so edit rules, not the schema, report those
+problems with an actionable message.
 """
 
 from datetime import date
 from decimal import Decimal
 from enum import StrEnum
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, StringConstraints
 from pydantic.alias_generators import to_camel
+
+StateCode = Annotated[str, StringConstraints(strip_whitespace=True, to_upper=True)]
 
 
 class FafsaServiceSchema(BaseModel):
@@ -35,8 +39,8 @@ class MaritalStatus(StrEnum):
 class StudentInfo(FafsaServiceSchema):
     first_name: str
     last_name: str
-    ssn: str | None = None
-    date_of_birth: date | None = None
+    ssn: str
+    date_of_birth: date
 
 
 class SpouseInfo(FafsaServiceSchema):
@@ -62,4 +66,4 @@ class FafsaApplication(FafsaServiceSchema):
     spouse_info: SpouseInfo | None = None
     household: Household
     income: Income
-    state_of_residence: str
+    state_of_residence: StateCode

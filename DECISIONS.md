@@ -12,9 +12,11 @@ Philosophy: make it work, make it right
 
 - return full set of validations (pass/fail) instead of failing on the first
 - two layers, kept separate:
-  - **schema validation** (Pydantic): structure and types only. Malformed requests are rejected with `422`.
-  - **edit rules**: business logic. They run on any structurally valid application, even one with bad values, and return `200` with results.
-- schema is deliberately lenient: fields that rules check (e.g. `parentIncome`, spouse info) are optional, and values like SSN are plain strings, so the edit rules report these problems instead of a schema rejection
+  - **schema validation** (Pydantic): structure, types, and presence of fields every application must have (e.g. student date of birth and SSN). Malformed requests are rejected with `422`.
+  - **edit rules**: value checks and conditional requirements. They run on any structurally valid application, even one with bad values, and return `200` with results.
+- schema is deliberately lenient on values: conditionally required fields (e.g. `parentIncome` only if dependent, spouse info only if married) are optional, and values like SSN are plain strings, so the edit rules report these problems instead of a schema rejection
+- state codes are normalized (trimmed, uppercased) in the schema, so `" ny "` is accepted as `NY`
+- the SSN format rule applies to the spouse SSN too, when provided; a missing spouse SSN is reported only by the marital status rule, not twice
 - each rule outcome is `PASSED`, `FAILED`, `SKIPPED` (rule not applicable, e.g. spouse rule for a single applicant), or `ERRORED`. Skipped is not reported as passed.
 - overall status, by precedence: `INVALID` (an `ERROR` rule failed) > `INCOMPLETE` (a rule errored) > `VALID_WITH_WARNINGS` (a `WARNING` rule failed) > `VALID`. `INFO` failures don't affect status.
 - a rule that raises is caught and logged, and reported as `ERRORED`; the other rules still run. One buggy rule degrades a result to `INCOMPLETE`, never to a 500 for every application, and never to a false `VALID`.
