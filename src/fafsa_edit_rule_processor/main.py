@@ -6,7 +6,7 @@ from starlette.responses import RedirectResponse
 
 from fafsa_edit_rule_processor.config import Settings
 from fafsa_edit_rule_processor.errors import validation_error_handler
-from fafsa_edit_rule_processor.routes import applications, core
+from fafsa_edit_rule_processor.routes import applications_routes, core_routes
 from fafsa_edit_rule_processor.rules import fafsa
 from fafsa_edit_rule_processor.rules.engine import RuleEngine
 from fafsa_edit_rule_processor.rules.repository import YamlRuleConfigRepository
@@ -48,7 +48,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return RedirectResponse(url="/docs")
 
     # routes
-    app.include_router(core.router)
-    app.include_router(applications.router)
+    app.include_router(core_routes.router)
+    app.include_router(applications_routes.router)
 
     return app

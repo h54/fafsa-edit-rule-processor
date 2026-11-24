@@ -35,7 +35,7 @@ rules:
     severity: ERROR
     message: "State of residence must be a valid US state abbreviation."
     params:
-      # 50 states + DC. Territories (e.g. PR, GU) can be added here without a deploy.
+      # 50 states + DC. Territories (e.g. PR, GU) can be added here without a code change.
       valid_codes: [
         AL, AK, AZ, AR, CA, CO, CT, DE, DC, FL, GA, HI, ID, IL, IN, IA, KS,
         KY, LA, ME, MD, MA, MI, MN, MS, MO, MT, NE, NV, NH, NJ, NM, NY, NC,

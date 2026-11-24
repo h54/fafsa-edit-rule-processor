@@ -29,26 +29,31 @@ Rule configuration lives in [`config/rules.yaml`](config/rules.yaml). Each rule'
 ## Running
 
 ```sh
-make sync   # create the virtual environment
-make run    # http://localhost:8000 (redirects to the OpenAPI docs)
+# create/update the virtual environment
+make sync
+
+make run
 ```
 
 ## Testing
 
 ```sh
-make test    # unit tests with coverage
-make lint    # ty + ruff
-make format  # ruff format
+# run unit tests
+make test
+
+# ruff + ty
+make lint
+
+make format
 ```
 
 ## API
 
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/v1/applications/validate` | Validate an application |
 | `GET` | `/healthz` | Health check |
 | `GET` | `/propertiez` | Active settings and ruleset |
-| `GET` | `/docs` | OpenAPI docs |
+| `POST` | `/v1/applications/validate` | Validate an application |
 
 ### Example
 
@@ -84,9 +89,21 @@ A structurally valid application returns `200`, even when rules fail (results ab
 }
 ```
 
-- `status`: `VALID`, `VALID_WITH_WARNINGS`, `INCOMPLETE` (a rule errored), or `INVALID`
-- `outcome`: `PASSED`, `FAILED`, `SKIPPED` (rule doesn't apply, e.g. spouse rule for a single student), or `ERRORED`
-- `fields`: JSON paths of the input fields to correct
+| `status` | Meaning |
+|---|---|
+| `VALID` | No `ERROR` or `WARNING` rule failed |
+| `VALID_WITH_WARNINGS` | Only `WARNING` rules failed; can proceed but should be reviewed (e.g. `STATE_CODE` configured as `WARNING` and the state is `PR`) |
+| `INCOMPLETE` | A rule errored, so the application couldn't be fully validated (e.g. a bug in a rule raises an exception) |
+| `INVALID` | An `ERROR` rule failed; must be corrected (e.g. SSN `123-45-6789` fails `SSN_FORMAT`) |
+
+| `outcome` | Meaning |
+|---|---|
+| `PASSED` | Rule applied and was satisfied |
+| `FAILED` | Rule applied and was violated; see `message` and `fields` |
+| `SKIPPED` | Rule doesn't apply (e.g. spouse rule for a single student) |
+| `ERRORED` | Rule raised an error; its result is unknown |
+
+`fields` lists the JSON paths of the input fields to correct.
 
 A malformed application (missing required field, wrong type, unknown field) returns `422` with the offending field's location.
 
@@ -136,24 +153,12 @@ sequenceDiagram
    ```
 3. Add cases to [`tests/unit/rules/test_fafsa.py`](tests/unit/rules/test_fafsa.py).
 
-## Project layout
+### Staging a rule
 
-```
-config/rules.yaml              rule configuration
-src/fafsa_edit_rule_processor/
-├── main.py                    app factory; loads rules at startup
-├── config.py                  settings (env vars)
-├── models/
-│   ├── application.py         request schema
-│   └── results.py             response models
-├── routes/
-│   ├── applications.py        POST /v1/applications/validate
-│   └── core.py                /healthz, /propertiez
-└── rules/
-    ├── config.py              RuleConfig / RuleSet
-    ├── repository.py          RuleConfigRepository (YAML)
-    ├── base.py                rule contract + registry
-    ├── engine.py              RuleEngine
-    └── fafsa.py               the FAFSA rules
-tests/                         mirrors src/
-```
+A rule's config can ship before its code:
+
+1. Add it to `rules.yaml` with `enabled: false`. The service starts and logs a warning that the rule has no implementation.
+2. Ship the implementation.
+3. Set `enabled: true`, bump `version`, and restart.
+
+Enabling a rule before its code exists stops startup (`no implementation for rule ...`), so a rule can never be silently skipped.
