@@ -1,0 +1,8 @@
+name: local
+variables:
+  - name: base_url
+    value: localhost
+    description: ""
+  - name: service_url
+    value: "{{base_url}}:8000"
+    description: ""

@@ -35,6 +35,7 @@ ruff:
 .PHONY: ruff
 
 lint: ty ruff
+	$(RUN) ruff format --check
 .PHONY: lint
 
 format:
