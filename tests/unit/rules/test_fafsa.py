@@ -84,7 +84,7 @@ CASES = [
     (fafsa.non_negative_income, {"income.parentIncome": ...}, PASSED, ()),
     (
         fafsa.non_negative_income,
-        {"income.studentIncome": -0.01, "income.parentIncome": -1},
+        {"income.studentIncome": -1, "income.parentIncome": -0.50},
         FAILED,
         ("income.studentIncome", "income.parentIncome"),
     ),

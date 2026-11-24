@@ -10,52 +10,80 @@ Philosophy: make it work, make it right
 
 ## Validation
 
-- return full set of validations (pass/fail) instead of failing on the first
-- two layers, kept separate:
-  - **schema validation** (Pydantic): structure, types, and presence of fields every application must have (e.g. student date of birth and SSN). Malformed requests are rejected with `422`.
-  - **edit rules**: value checks and conditional requirements. They run on any structurally valid application, even one with bad values, and return `200` with results.
-- schema is deliberately lenient on values: conditionally required fields (e.g. `parentIncome` only if dependent, spouse info only if married) are optional, and values like SSN are plain strings, so the edit rules report these problems instead of a schema rejection
-- state codes are normalized (trimmed, uppercased) in the schema, so `" ny "` is accepted as `NY`
-- the SSN format rule applies to the spouse SSN too, when provided; a missing spouse SSN is reported only by the marital status rule, not twice
-- each rule outcome is `PASSED`, `FAILED`, `SKIPPED` (rule not applicable, e.g. spouse rule for a single applicant), or `ERRORED`. Skipped is not reported as passed.
-- overall status, by precedence: `INVALID` (an `ERROR` rule failed) > `INCOMPLETE` (a rule errored) > `VALID_WITH_WARNINGS` (a `WARNING` rule failed) > `VALID`. `INFO` failures don't affect status.
-- a rule that raises is caught and logged, and reported as `ERRORED`; the other rules still run. One buggy rule degrades a result to `INCOMPLETE`, never to a 500 for every application, and never to a false `VALID`.
-- a disabled rule with no implementation is allowed (so config can be staged before code ships) but logs a warning at startup
+- collect all rule results; never stop at the first failure
+- two layers:
+  - **schema** (Pydantic): structure, types, always-required fields (e.g. student DOB, SSN) → `422`
+  - **rules**: value checks and conditional requirements → `200` with results
+- schema is lenient on values (SSN is any string; parent income / spouse info optional) so rules can report problems with actionable messages
+- schema normalizes: state codes trimmed + uppercased; income rounded to whole dollars (see Assumptions)
+- rule outcomes: `PASSED`, `FAILED`, `SKIPPED` (doesn't apply), `ERRORED`
+- status precedence: `INVALID` > `INCOMPLETE` (a rule errored) > `VALID_WITH_WARNINGS` > `VALID`
+- a rule that raises is logged and reported as `ERRORED`; other rules still run. A buggy rule yields `INCOMPLETE`, never a 500 or a false `VALID`.
+
+## Severity Levels
+
+- `ERROR` → `INVALID`; `WARNING` → `VALID_WITH_WARNINGS`; `INFO` → no effect on status
+- all 7 required rules are `ERROR` (each is unprocessable data). Severity is configurable, so a rule can be downgraded mid-year without a deploy.
 
 ## Rule Representation
 
-- **rule logic lives in code; rule configuration lives in a store**
-  - config = id, enabled, severity, message, parameters (e.g. `min_age: 14`, list of valid state codes)
-  - logic = a small, unit-tested class per rule type
-- most mid-year changes are configuration changes (thresholds, severities, messages, disabling a rule). These need no deploy.
-- adding a new *kind* of rule needs a code change. This is intentional: eligibility logic should go through code review and tests.
-- considered and rejected: a rules DSL / expressions stored in a database. More flexible, but it means building and securing an interpreter, and untested rule logic can reach production.
+- **logic in code, configuration in a store**
+  - config: id, enabled, severity, message, params (e.g. `min_age: 14`)
+  - logic: one small, tested function per rule, registered by id
+- most mid-year changes are config (thresholds, severity, messages, disabling) → no deploy
+- new *kinds* of rules need code, intentionally: eligibility logic should be reviewed and tested
+- rejected: a rules DSL in a database. Flexible, but means building an interpreter and shipping untested logic.
+- config is checked against the registry at startup (unknown rule, missing param, bad placeholder → fail fast). Disabled rules without code are allowed (staging) but log a warning.
+- adding a rule: function + YAML entry + tests (see README)
+
+## Rule Order & Conflicts
+
+- rules are independent pure functions, so order doesn't matter; results return in config order
+- conflicts avoided by design: each rule owns one concern (e.g. missing spouse SSN is reported only by the marital status rule), and rules only flag problems, never approve or override
+- if rule dependencies are ever needed, make them explicit by rule id, not by order
 
 ## Rule Storage
 
-- configuration is loaded through a `RuleConfigRepository` interface
-- implemented here: a file-backed repository (YAML), so the service runs with no external dependencies
-- in production: a Postgres-backed implementation of the same interface, which gives auditing, change history, and edits through an admin tool without a deploy. Not built here to keep the service easy to run within the time limit.
-- rules are loaded into memory at startup, never read from the store per request
-- config changes (enable/disable, severity, message, params) currently take effect on restart. Future: hot reload via an admin endpoint or periodic re-read that builds a new, validated `RuleEngine` and atomically swaps it in. An invalid config is rejected and the current engine keeps serving.
+- loaded via a `RuleConfigRepository` interface; YAML implementation here (no external dependencies)
+- production: Postgres implementation for audit history and admin edits
+- loaded into memory at startup, never per request
+- changes apply on restart. Future: hot reload that validates the new config and atomically swaps the engine, keeping the old one on failure.
 
 ## Consistency
 
-- each request is evaluated against one immutable ruleset snapshot, so a config reload during a request can't mix two rule versions
-- the response includes the ruleset version, so every result can be traced to the exact rules that produced it
+- each request uses one immutable ruleset snapshot
+- responses include the ruleset version, so results are traceable
 - future: effective dates / award year on rules
 
 ## Performance & Concurrency
 
-- the validate endpoint is synchronous (`def`, not `async def`) on purpose: validation is pure CPU work against an in-memory ruleset (microseconds, no per-request I/O), so there is nothing to `await`
-- FastAPI runs sync endpoints in a threadpool, so the event loop is never blocked. If a rule ever becomes slow or blocking, it ties up one thread rather than stalling every request, as it would in an `async def` endpoint.
-- throughput for CPU-bound work scales with processes, not async: more uvicorn workers (`--workers N`) or more containers behind a load balancer
-- **when to go async:** as soon as validation needs I/O, e.g. a rule that calls an internal service (identity/SSN verification) or a DB write (persisting results for audit). Then:
-  - make the endpoint and rule evaluation `async`, using async clients (`asyncpg`, `httpx2`)
-  - run I/O-bound rules concurrently (`asyncio.gather`) with per-call timeouts
-  - a timed-out or failed dependency reports the rule as `ERRORED` (status `INCOMPLETE`), the same path as a buggy rule today, so an unavailable service never produces a false `VALID`
+- rules are bound and messages formatted at startup; a request is one in-memory pass with no I/O
+- scale with processes (`--workers N`, more containers), not async: the work is CPU-bound
+- endpoint is sync on purpose: nothing to `await`, and FastAPI runs it in a threadpool, so a slow rule blocks one thread rather than the event loop
+- go async when a rule needs I/O (internal service call, DB write): async clients, concurrent I/O rules with timeouts; a failed dependency reports `ERRORED`, never a false `VALID`
+- bulk: a batch endpoint, or run `RuleEngine` in a queue worker (it has no HTTP dependency)
 
 ## Production Considerations
 
-- logging is plain stdlib text; in production: JSON logs + request IDs for log aggregation and audit traceability
-- PII is kept out of logs and error responses: validation logs record only status, ruleset version, and failed rule ids; 422 responses omit Pydantic's `input` echo so a rejected request never returns applicant data
+- plain stdlib logging; production would use JSON logs + request IDs
+- no PII in logs or errors: logs record status, ruleset version, failed rule ids; 422s omit Pydantic's `input` echo
+- CI runs lint (ty, ruff, format check) and tests on every PR
+
+## Testing
+
+- rules: table-driven edge cases (birthday boundary, non-ASCII digits, zero income, blank fields) with a fixed `as_of` date
+- engine: fake rules in an isolated registry
+- end to end: both brief samples through the shipped `rules.yaml` and the API
+- the shipped `rules.yaml` is tested, so a bad config fails CI, not startup
+
+## Assumptions
+
+- valid states = 50 + DC; territories can be added in config
+- spouse info = first name, last name, SSN; blank counts as missing
+- income in whole dollars, as FAFSA collects it: parsed as `Decimal`, rounded IRS-style (half up, not banker's). The rule judges the rounded amount, so −$0.01 to −$0.49 → $0 and passes.
+- negative income is `ERROR` per the brief, though real AGI can be negative; arguably a `WARNING`
+- age is calculated as of the request date (server local)
+
+## Time Spent
+
+- TODO

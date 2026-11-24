@@ -64,6 +64,7 @@ A structurally valid application returns `200`, even when rules fail (results ab
 {
   "status": "INVALID",
   "rulesetVersion": "2026-27.1",
+  "summary": { "total": 7, "passed": 0, "failed": 7, "skipped": 0, "errored": 0 },
   "results": [
     {
       "ruleId": "SSN_FORMAT",
@@ -79,8 +80,7 @@ A structurally valid application returns `200`, even when rules fail (results ab
       "message": "Number in college cannot exceed number in household.",
       "fields": ["household.numberInCollege", "household.numberInHousehold"]
     }
-  ],
-  "summary": { "total": 7, "passed": 0, "failed": 7, "skipped": 0, "errored": 0 }
+  ]
 }
 ```
 

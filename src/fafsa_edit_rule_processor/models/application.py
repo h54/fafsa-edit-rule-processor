@@ -7,14 +7,27 @@ problems with an actionable message.
 """
 
 from datetime import date
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Any
 
-from pydantic import BaseModel, ConfigDict, StringConstraints
+from pydantic import BaseModel, BeforeValidator, ConfigDict, StringConstraints
 from pydantic.alias_generators import to_camel
 
+
+def _round_to_dollar(value: Any) -> Any:
+    """Round to whole dollars, IRS-style (half up: $0.50 and above rounds up).
+
+    Non-numeric input is passed through unchanged for the int validator to reject.
+    """
+    try:
+        return int(Decimal(str(value)).quantize(Decimal(1), rounding=ROUND_HALF_UP))
+    except InvalidOperation, ValueError:
+        return value
+
+
 StateCode = Annotated[str, StringConstraints(strip_whitespace=True, to_upper=True)]
+WholeDollars = Annotated[int, BeforeValidator(_round_to_dollar)]
 
 
 class FafsaServiceSchema(BaseModel):
@@ -55,8 +68,8 @@ class Household(FafsaServiceSchema):
 
 
 class Income(FafsaServiceSchema):
-    student_income: Decimal
-    parent_income: Decimal | None = None
+    student_income: WholeDollars
+    parent_income: WholeDollars | None = None
 
 
 class FafsaApplication(FafsaServiceSchema):

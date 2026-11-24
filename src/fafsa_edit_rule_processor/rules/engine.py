@@ -1,10 +1,12 @@
 import logging
+from collections import Counter
 from dataclasses import dataclass
 from datetime import date
 
 from fafsa_edit_rule_processor.models.application import FafsaApplication
 from fafsa_edit_rule_processor.models.results import (
     ApplicationStatus,
+    ResultSummary,
     RuleOutcome,
     RuleResult,
     ValidationResult,
@@ -59,6 +61,7 @@ class RuleEngine:
         return ValidationResult(
             status=_status(results),
             ruleset_version=self.ruleset.version,
+            summary=_summary(results),
             results=results,
         )
 
@@ -117,3 +120,14 @@ def _status(results: tuple[RuleResult, ...]) -> ApplicationStatus:
     if Severity.WARNING in failed:
         return ApplicationStatus.VALID_WITH_WARNINGS
     return ApplicationStatus.VALID
+
+
+def _summary(results: tuple[RuleResult, ...]) -> ResultSummary:
+    counts = Counter(r.outcome for r in results)
+    return ResultSummary(
+        total=len(results),
+        passed=counts[RuleOutcome.PASSED],
+        failed=counts[RuleOutcome.FAILED],
+        skipped=counts[RuleOutcome.SKIPPED],
+        errored=counts[RuleOutcome.ERRORED],
+    )

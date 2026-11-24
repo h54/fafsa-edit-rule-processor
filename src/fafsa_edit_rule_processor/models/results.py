@@ -1,7 +1,4 @@
-from collections import Counter
 from enum import StrEnum
-
-from pydantic import computed_field
 
 from fafsa_edit_rule_processor.models.application import FafsaServiceSchema
 from fafsa_edit_rule_processor.rules.config import Severity
@@ -41,16 +38,5 @@ class ResultSummary(FafsaServiceSchema):
 class ValidationResult(FafsaServiceSchema):
     status: ApplicationStatus
     ruleset_version: str
+    summary: ResultSummary
     results: tuple[RuleResult, ...]
-
-    @computed_field
-    @property
-    def summary(self) -> ResultSummary:
-        counts = Counter(r.outcome for r in self.results)
-        return ResultSummary(
-            total=len(self.results),
-            passed=counts[RuleOutcome.PASSED],
-            failed=counts[RuleOutcome.FAILED],
-            skipped=counts[RuleOutcome.SKIPPED],
-            errored=counts[RuleOutcome.ERRORED],
-        )
