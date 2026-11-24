@@ -1,9 +1,11 @@
 import logging
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from starlette.responses import RedirectResponse
 
 from fafsa_edit_rule_processor.config import Settings
+from fafsa_edit_rule_processor.errors import validation_error_handler
 from fafsa_edit_rule_processor.routes import applications, core
 from fafsa_edit_rule_processor.rules import fafsa
 from fafsa_edit_rule_processor.rules.engine import RuleEngine
@@ -37,6 +39,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = settings
     app.state.engine = engine
+
+    # custom handlers
+    app.add_exception_handler(RequestValidationError, validation_error_handler)  # ty: ignore[invalid-argument-type]
 
     @app.get("/", include_in_schema=False)
     def redirect_to_docs() -> RedirectResponse:

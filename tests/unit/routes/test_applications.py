@@ -52,4 +52,7 @@ def test_malformed_application_is_rejected_with_422(
     response = client.post(URL, json=data)
 
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["body", "studentInfo", "dateOfBirth"]
+    (error,) = response.json()["detail"]
+    assert error["loc"] == ["body", "studentInfo", "dateOfBirth"]
+    assert "input" not in error
+    assert valid_application_data["studentInfo"]["firstName"] not in response.text

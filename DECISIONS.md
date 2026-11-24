@@ -45,6 +45,17 @@ Philosophy: make it work, make it right
 - the response includes the ruleset version, so every result can be traced to the exact rules that produced it
 - future: effective dates / award year on rules
 
+## Performance & Concurrency
+
+- the validate endpoint is synchronous (`def`, not `async def`) on purpose: validation is pure CPU work against an in-memory ruleset (microseconds, no per-request I/O), so there is nothing to `await`
+- FastAPI runs sync endpoints in a threadpool, so the event loop is never blocked. If a rule ever becomes slow or blocking, it ties up one thread rather than stalling every request, as it would in an `async def` endpoint.
+- throughput for CPU-bound work scales with processes, not async: more uvicorn workers (`--workers N`) or more containers behind a load balancer
+- **when to go async:** as soon as validation needs I/O, e.g. a rule that calls an internal service (identity/SSN verification) or a DB write (persisting results for audit). Then:
+  - make the endpoint and rule evaluation `async`, using async clients (`asyncpg`, `httpx2`)
+  - run I/O-bound rules concurrently (`asyncio.gather`) with per-call timeouts
+  - a timed-out or failed dependency reports the rule as `ERRORED` (status `INCOMPLETE`), the same path as a buggy rule today, so an unavailable service never produces a false `VALID`
+
 ## Production Considerations
 
 - logging is plain stdlib text; in production: JSON logs + request IDs for log aggregation and audit traceability
+- PII is kept out of logs and error responses: validation logs record only status, ruleset version, and failed rule ids; 422 responses omit Pydantic's `input` echo so a rejected request never returns applicant data
