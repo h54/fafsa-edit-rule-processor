@@ -1,0 +1,37 @@
+info:
+  name: Validate - Bad request
+  type: http
+  seq: 3
+
+http:
+  method: POST
+  url: "{{service_url}}/v1/applications/validate"
+  body:
+    type: json
+    data: |+
+      {
+        "studentInfo": {
+          "firstName": "Daryl",
+          "lastName": "Strawberry",
+          "ssn": "invalid",
+          "dateOfBirth": "2021-08-12"
+        },
+        "dependencyStatus": "dependent",
+        "maritalStatus": "married",
+        "household": {
+          "numberInHousehold": 2,
+          "numberInCollege": 5
+        },
+        "income": {
+          "studentIncome": -1000
+        },
+        "stateOfResidence": "AC"
+
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+  forwardAuthorizationHeader: false
